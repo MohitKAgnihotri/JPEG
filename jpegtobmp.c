@@ -43,8 +43,9 @@ int in_frame, curcomp;
 int MCU_row, MCU_column;
 
 /* input  File stream pointer   */
-FILE *fi;
+FILE *fi, *fi1 , *fi2;
 
+int i,j;
 /* stuff bytes in entropy coded segments */
 int stuffers = 0;
 /* bytes passed when searching markers */
@@ -65,6 +66,7 @@ int main()
 {
 
 	JpegToBmp("./surfer.jpg", "surfer.bmp");
+	comp_ref_to_surfer( "surfer.bmp" , "ref.bmp");
 	return 0;
 
 }
@@ -343,3 +345,33 @@ void write_bmp(const char *const file2)
 
 	fclose(fpBMP);
 }
+int comp_ref_to_surfer( char *file1, char *file2)
+{   
+    int index;
+	printf("\n comparing outputbmp \n");
+    fi1 = fopen(file1, "rb");
+	if (fi1 == NULL) {
+		printf("unable to open the file %s\n", file1);
+		return 0;
+	}
+	fi2 = fopen(file2, "rb");
+	if (fi2 == NULL) {
+		printf("unable to open the file %s\n", file1);
+		return 0;
+	}
+	index = 0;
+	for(i = 0; i < x_size ; i++)
+	   for(j = 0; j<y_size; j++){
+	     
+	     if(fgetc(fi1) != fgetc(fi2)){
+		 int m = index/x_size;
+		 int n = index%x_size;
+		 printf("(%d,%d)--> out = %x  ref = %x \n",m,n,fgetc(fi1),fgetc(fi2));
+		 exit(0);
+		 }
+		 index ++;
+	}
+	printf("\n Success \n");
+}
+	
+	
