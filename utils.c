@@ -5,7 +5,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-
+#include "5kk03.h"
 #include "jpeg.h"
 
 /* Prints a data block in frequency space. */
@@ -33,17 +33,37 @@ void show_PBlock(PBlock * S)
 }
 
 /* Prints the next 800 bits read from file `fi'. */
+#ifdef FILE_IO
 void bin_dump(FILE * fi)
+#else
+void bin_dump(unsigned int * fi)
+#endif
 {
 	int i;
 
-	for (i = 0; i < 100; i++) {
+	for (i = 0; i < 100; i++) 
+    {
 		unsigned int bitmask;
+#ifdef FILE_IO
 		int c = fgetc(fi);
+#else
+		int c = FGETC(fi);
+#endif
 
 		for (bitmask = 0x80; bitmask; bitmask >>= 1)
+        {
+#ifdef FILE_IO
 			fprintf(stderr, "\t%1d", ! !(c & bitmask));
+#else
+			printf("\t%d", ! !(c & bitmask));
+#endif
+
+        }
+#ifdef FILE_IO
 		fprintf(stderr, "\n");
+#else
+		printf("\n");
+#endif
 	}
 }
 
@@ -63,14 +83,23 @@ void suicide(void)
 
 /*-------------------------------------------*/
 
+#ifdef FILE_IO
 void aborted_stream(FILE * fi)
+#else
+void aborted_stream(unsigned int * fi)
+#endif
 {
+#if FILE_IO
 	fprintf(stderr, "%ld:\tERROR:\tAbnormal end of decompression process!\n", ftell(fi));
 	fprintf(stderr, "\tINFO:\tTotal skipped bytes %d, total stuffers %d\n", passed, stuffers);
 
 	fclose(fi);
 
 	free_structures();
+#else
+	printf("%d:\tERROR:\tAbnormal end of decompression process!\n", FTELL());
+	printf("\tINFO:\tTotal skipped bytes %d, total stuffers %d\n", passed, stuffers);
+#endif
 
 	if (DEBUG)
 		suicide();
@@ -166,10 +195,19 @@ typedef struct {
 	unsigned long CMapLength;
 } sunraster;
 
+#ifdef FILE_IO
 void RGB_save(FILE * fo)
+#else
+void RGB_save(unsigned int * fo)
+#endif
+
 {
 	sunraster *FrameHeader;
+#ifdef FILE_IO
 	int i;
+#else
+    /*variable is not used in this case*/
+#endif
 
 	FrameHeader = (sunraster *) malloc(sizeof(sunraster));
 	FrameHeader->MAGIC = 0x59a66a95L;
@@ -181,7 +219,11 @@ void RGB_save(FILE * fo)
 	FrameHeader->CMapType = 0;	/* truecolor */
 	FrameHeader->CMapLength = 0;	/* none */
 
+#ifdef FILE_IO
 	fwrite(FrameHeader, sizeof(sunraster), 1, fo);
 	for (i = 0; i < y_size; i++)
 		fwrite(FrameBuffer + n_comp * i * x_size, n_comp, FrameHeader->Width, fo);
+#else
+    /*Implement code to write into DDR or something similiar*/
+#endif
 }

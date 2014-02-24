@@ -35,7 +35,11 @@ static const int const G_ZZ[] = {
 /* a complete 8*8 DCT block ...			   */
 /*-------------------------------------------------*/
 
+#ifdef FILE_IO
 void unpack_block(FILE * fi, FBlock * T, int select)
+#else
+void unpack_block(unsigned int * fi, FBlock * T, int select)
+#endif
 {
 	unsigned int i, run, cat;
 	int value;

@@ -91,7 +91,11 @@ extern PBlock *QTable[4];
 /* at most, but seen as four ... */
 extern int QTvalid[4];
 
+#ifdef FILE_IO
 extern FILE *fi;
+#else
+extern unsigned int *fi;
+#endif
 
 /* picture attributes */
 /* Video frame size     */
@@ -139,7 +143,12 @@ extern unsigned int input_buffer[JPGBUFFER_SIZE / sizeof(int)];
 
 void show_FBlock(FBlock * S);
 void show_PBlock(PBlock * S);
+
+#ifdef FILE_IO
 void bin_dump(FILE * fi);
+#else
+void bin_dump(unsigned int * fi);
+#endif
 
 int ceil_div(int N, int D);
 int floor_div(int N, int D);
@@ -147,14 +156,21 @@ void reset_prediction();
 int reformat(unsigned long S, int good);
 void free_structures();
 void suicide();
+
+#ifdef FILE_IO
 void aborted_stream(FILE * fi);
 void RGB_save(FILE * fo);
+#else
+void aborted_stream(unsigned int * fi);
+void RGB_save(unsigned int * fo);
+#endif
 
 /*-----------------------------------------*/
 /* prototypes from parse.c		   */
 /*-----------------------------------------*/
 
 void clear_bits();
+#ifdef FILE_IO
 unsigned long get_bits(FILE * fi, int number);
 unsigned char get_one_bit(FILE * fi);
 unsigned int get_size(FILE * fi);
@@ -163,6 +179,16 @@ int load_quant_tables(FILE * fi);
 int init_MCU();
 void skip_segment(FILE * fi);
 int process_MCU(FILE * fi);
+#else
+unsigned long get_bits(unsigned int * fi, int number);
+unsigned char get_one_bit(unsigned int * fi);
+unsigned int get_size(unsigned int * fi);
+unsigned int get_next_MK(unsigned int * fi);
+int load_quant_tables(unsigned int * fi);
+int init_MCU();
+void skip_segment(unsigned int * fi);
+int process_MCU(unsigned int * fi);
+#endif
 
 /*-------------------------------------------*/
 /* prototypes from fast_idct.c               */
@@ -179,15 +205,21 @@ void color_conversion();
 /*-------------------------------------------*/
 /* prototypes from table_vld.c or tree_vld.c */
 /*-------------------------------------------*/
-
+#ifdef FILE_IO
 int load_huff_tables(FILE * fi);
 unsigned char get_symbol(FILE * fi, int select);
-
+#else
+int load_huff_tables(unsigned int * fi);
+unsigned char get_symbol(unsigned int * fi, int select);
+#endif
 /*-----------------------------------------*/
 /* prototypes from huffman.c 		   */
 /*-----------------------------------------*/
-
+#ifdef FILE_IO
 void unpack_block(FILE * fi, FBlock * T, int comp);
+#else
+void unpack_block(unsigned int * fi, FBlock * T, int comp);
+#endif
 /* unpack, predict, dequantize, reorder on store */
 
 /*-----------------------------------------*/

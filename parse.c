@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "5kk03.h"
 #include "jpeg.h"
 
 /*---------------------------------------------------------------------*/
@@ -17,7 +17,11 @@
 static unsigned char bit_count;	/* available bits in the window */
 static unsigned char window;
 
+#ifdef FILE_IO
 unsigned long get_bits(FILE * fi, int number)
+#else
+unsigned long get_bits(unsigned int * fi, int number)
+#endif
 {
 	int i, newbit;
 	unsigned long result = 0;
@@ -26,38 +30,63 @@ unsigned long get_bits(FILE * fi, int number)
 	if (!number)
 		return 0;
 
-	for (i = 0; i < number; i++) {
-		if (bit_count == 0) {
-			wwindow = fgetc(fi);
+	for (i = 0; i < number; i++) 
+    {
+        if (bit_count == 0) 
+        {
+#ifdef FILE_IO
+            wwindow = fgetc(fi);
+#else
+            wwindow = FGETC(fi);
+#endif
 
-			if (wwindow == 0xFF)
-				switch (aux = fgetc(fi)) {	/* skip stuffer 0 byte */
-				case 0xFF:
-					fprintf(stderr, "%ld:\tERROR:\tRan out of bit stream\n", ftell(fi));
-					aborted_stream(fi);
-					break;
+            if (wwindow == 0xFF)
+#ifdef FILE_IO
+                switch (aux = fgetc(fi)) 
+#else
+                switch (aux = FGETC(fi)) 
+#endif
+                {	/* skip stuffer 0 byte */
+                    case 0xFF:
+#ifdef FILE_IO
+                        fprintf(stderr, "%ld:\tERROR:\tRan out of bit stream\n", ftell(fi));
+#else
+                        printf("%d:\tERROR:\tRan out of bit stream\n", FTELL());
+#endif
+                        aborted_stream(fi);
+                        break;
 
-				case 0x00:
-					stuffers++;
-					break;
+                    case 0x00:
+                        stuffers++;
+                        break;
 
-				default:
-					if (RST_MK(0xFF00 | aux))
-						fprintf(stderr, "%ld:\tERROR:\tSpontaneously found restart!\n",
-							ftell(fi));
-					fprintf(stderr, "%ld:\tERROR:\tLost sync in bit stream\n", ftell(fi));
-					aborted_stream(fi);
-					break;
-				}
+                    default:
+                        if (RST_MK(0xFF00 | aux))
+                        {
+#ifdef FILE_IO
+                            fprintf(stderr, "%ld:\tERROR:\tSpontaneously found restart!\n", ftell(fi));
+#else
+                            printf("%d:\tERROR:\tSpontaneously found restart!\n", FTELL());
+#endif
 
-			bit_count = 8;
-		} else
-			wwindow = window;
-		newbit = (wwindow >> 7) & 1;
-		window = wwindow << 1;
-		bit_count--;
-		result = (result << 1) | newbit;
-	}
+                        }
+#ifdef FILE_IO
+                        fprintf(stderr, "%ld:\tERROR:\tLost sync in bit stream\n", ftell(fi));
+#else
+                        printf("%d:\tERROR:\tLost sync in bit stream\n", FTELL());
+#endif
+                        aborted_stream(fi);
+                        break;
+                }
+
+            bit_count = 8;
+        } else
+            wwindow = window;
+        newbit = (wwindow >> 7) & 1;
+        window = wwindow << 1;
+        bit_count--;
+        result = (result << 1) | newbit;
+    }
 	return result;
 }
 
@@ -66,32 +95,55 @@ void clear_bits(void)
 	bit_count = 0;
 }
 
+#ifdef FILE_IO
 unsigned char get_one_bit(FILE * fi)
+#else
+unsigned char get_one_bit(unsigned int * fi)
+#endif
 {
 	int newbit;
 	unsigned char aux, wwindow;
 
 	if (bit_count == 0) {
-		wwindow = fgetc(fi);
+ #ifdef FILE_IO
+ 		wwindow = fgetc(fi);
+ #else
+    wwindow = FGETC(fi);
+ #endif
 
 		if (wwindow == 0xFF)
-			switch (aux = fgetc(fi)) {	/* skip stuffer 0 byte */
-			case 0xFF:
-				fprintf(stderr, "%ld:\tERROR:\tRan out of bit stream\n", ftell(fi));
-				aborted_stream(fi);
-				break;
+#ifdef FILE_IO
+			switch (aux = fgetc(fi)) 
+#else
+			switch (aux = FGETC(fi)) 
+#endif
+            {	/* skip stuffer 0 byte */
+                case 0xFF:
+#ifdef FILE_IO
+                    fprintf(stderr, "%ld:\tERROR:\tRan out of bit stream\n", ftell(fi));
+#else
+                    printf("%d:\tERROR:\tRan out of bit stream\n", FTELL());
+#endif
+                    aborted_stream(fi);
+                    break;
 
-			case 0x00:
-				stuffers++;
-				break;
+                case 0x00:
+                    stuffers++;
+                    break;
 
-			default:
-				if (RST_MK(0xFF00 | aux))
-					fprintf(stderr, "%ld:\tERROR:\tSpontaneously found restart!\n", ftell(fi));
-				fprintf(stderr, "%ld:\tERROR:\tLost sync in bit stream\n", ftell(fi));
-				aborted_stream(fi);
-				break;
-			}
+                default:
+#ifdef FILE_IO
+                    if (RST_MK(0xFF00 | aux))
+                        fprintf(stderr, "%ld:\tERROR:\tSpontaneously found restart!\n", ftell(fi));
+                    fprintf(stderr, "%ld:\tERROR:\tLost sync in bit stream\n", ftell(fi));
+#else
+                    if (RST_MK(0xFF00 | aux))
+                        printf("%d:\tERROR:\tSpontaneously found restart!\n", FTELL());
+                    printf("%d:\tERROR:\tLost sync in bit stream\n", FTELL());
+#endif
+                    aborted_stream(fi);
+                    break;
+            }
 
 		bit_count = 8;
 	} else
@@ -104,18 +156,31 @@ unsigned char get_one_bit(FILE * fi)
 }
 
 /*----------------------------------------------------------*/
-
+#ifdef FILE_IO
 unsigned int get_size(FILE * fi)
+#else
+unsigned int get_size(unsigned int * fi)
+#endif
+
 {
 	unsigned char aux;
 
+#ifdef FILE_IO
 	aux = fgetc(fi);
 	return (aux << 8) | fgetc(fi);	/* big endian */
+#else
+	aux = FGETC(fi);
+	return (aux << 8) | FGETC(fi);	/* big endian */
+#endif
 }
 
 /*----------------------------------------------------------*/
 
+#ifdef FILE_IO
 void skip_segment(FILE * fi)
+#else
+void skip_segment(unsigned int * fi)
+#endif
 {				/* skip a segment we don't want */
 	unsigned int size;
 	char tag[5];
@@ -124,21 +189,32 @@ void skip_segment(FILE * fi)
 	size = get_size(fi);
 	if (size > 5) {
 		for (i = 0; i < 4; i++)
+   #ifdef FILE_IO
 			tag[i] = fgetc(fi);
+   #else
+      tag[i] = FGETC(fi);
+   #endif
 		tag[4] = '\0';
 		if (verbose)
 			fprintf(stderr, "\tINFO:\tTag is %s\n", tag);
 		size -= 4;
 	}
+ #ifdef FILE_IO
 	fseek(fi, size - 2, SEEK_CUR);
+ #else
+  FSEEK(size - 2, SEEK_CUR);
+ #endif
 }
 
 /*----------------------------------------------------------------*/
 /* find next marker of any type, returns it, positions just after */
 /* EOF instead of marker if end of file met while searching ...	  */
 /*----------------------------------------------------------------*/
-
+#ifdef FILE_IO
 unsigned int get_next_MK(FILE * fi)
+#else
+unsigned int get_next_MK(unsigned int * fi)
+#endif
 {
 	unsigned int c;
 	int ffmet = 0;
@@ -146,25 +222,38 @@ unsigned int get_next_MK(FILE * fi)
 
 	passed--;		/* as we fetch one anyway */
 
-	while ((c = fgetc(fi)) != (unsigned int)EOF) {
-		switch (c) {
-		case 0xFF:
-			ffmet = 1;
-			break;
-		case 0x00:
-			ffmet = 0;
-			break;
-		default:
-			if (locpassed > 1)
-				fprintf(stderr, "NOTE: passed %d bytes\n", locpassed);
-			if (ffmet)
-				return (0xFF00 | c);
-			ffmet = 0;
-			break;
-		}
-		locpassed++;
-		passed++;
-	}
+#ifdef FILE_IO
+    while ((c = fgetc(fi)) != (unsigned int)EOF) 
+#else
+	while ((c = FGETC(fi)) != (unsigned int)EOF) 
+#endif
+    {
+        switch (c) 
+        {
+            case 0xFF:
+                ffmet = 1;
+                break;
+            case 0x00:
+                ffmet = 0;
+                break;
+            default:
+                if (locpassed > 1)
+                {
+#ifdef FILE_IO
+                    fprintf(stderr, "NOTE: passed %d bytes\n", locpassed);
+#else
+                    printf("NOTE: passed %d bytes\n", locpassed);
+#endif
+                }
+
+                if (ffmet)
+                    return (0xFF00 | c);
+                ffmet = 0;
+                break;
+        }
+        locpassed++;
+        passed++;
+    }
 
 	return (unsigned int)EOF;
 }
@@ -174,7 +263,11 @@ unsigned int get_next_MK(FILE * fi)
 /* table elements are in ZZ order (same as unpack output)   */
 /*----------------------------------------------------------*/
 
+#ifdef FILE_IO
 int load_quant_tables(FILE * fi)
+#else
+int load_quant_tables(unsigned int * fi)
+#endif
 {
 	char aux;
 	unsigned int size, n, i, id, x;
@@ -183,22 +276,46 @@ int load_quant_tables(FILE * fi)
 	n = (size - 2) / 65;
 
 	for (i = 0; i < n; i++) {
-		aux = fgetc(fi);
-		if (first_quad(aux) > 0) {
+   #ifdef FILE_IO
+			aux = fgetc(fi);
+   #else
+      aux = FGETC(fi);
+   #endif		
+		if (first_quad(aux) > 0) 
+        {
+#ifdef FILE_IO
 			fprintf(stderr, "\tERROR:\tBad QTable precision!\n");
+#else
+			printf("\tERROR:\tBad QTable precision!\n");
+#endif
 			return -1;
 		}
 		id = second_quad(aux);
 		if (verbose)
+        {
+#ifdef FILE_IO
 			fprintf(stderr, "\tINFO:\tLoading table %d\n", id);
+#else
+			printf("\tINFO:\tLoading table %d\n", id);
+#endif
+        }
 		QTable[id] = (PBlock *) malloc(sizeof(PBlock));
-		if (QTable[id] == NULL) {
+		if (QTable[id] == NULL) 
+        {
+#ifdef FILE_IO
 			fprintf(stderr, "\tERROR:\tCould not allocate table storage!\n");
+#else
+			printf("\tERROR:\tCould not allocate table storage!\n");
+#endif
 			exit(1);
 		}
 		QTvalid[id] = 1;
 		for (x = 0; x < 64; x++)
+    #ifdef FILE_IO
 			QTable[id]->linear[x] = fgetc(fi);
+    #else
+      QTable[id]->linear[x] = FGETC(fi);
+    #endif
 		/*
 		   -- This is useful to print out the table content --
 		   for (x = 0; x < 64; x++)
@@ -263,7 +380,11 @@ int init_MCU(void)
 /* this takes care for processing all the blocks in one MCU */
 /*----------------------------------------------------------*/
 
+#ifdef FILE_IO
 int process_MCU(FILE * fi)
+#else
+int process_MCU(unsigned int * fi)
+#endif
 {
 	int i;
 	long offset;
@@ -277,10 +398,15 @@ int process_MCU(FILE * fi)
 			return 0;
 		}
 		if (verbose)
+#ifdef FILE_IO
 			fprintf(stderr, "%ld:\tINFO:\tProcessing stripe %d/%d\n", ftell(fi), MCU_row + 1, my_size);
+#else
+			printf("%d:\tINFO:\tProcessing stripe %d/%d\n", FTELL(), MCU_row + 1, my_size);
+#endif
 	}
 
-	for (curcomp = 0; MCU_valid[curcomp] != -1; curcomp++) {
+	for (curcomp = 0; MCU_valid[curcomp] != -1; curcomp++) 
+    {
 		unpack_block(fi, FBuff, MCU_valid[curcomp]);	/* pass index to HT,QT,pred */
 		IDCT(FBuff, MCU_buff[curcomp]);
 	}
