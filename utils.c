@@ -5,18 +5,32 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "5kk03.h"
 #include "jpeg.h"
+#include <comik.h>
+#include <5kk03-utils.h>
 
+#ifdef FILE_IO
 /* Prints a data block in frequency space. */
 void show_FBlock(FBlock * S)
 {
 	int i, j;
 
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 8; i++) 
+    {
 		for (j = 0; j < 8; j++)
+        {
+#ifdef FILE_IO
 			fprintf(stderr, "\t%d", S->block[i][j]);
+#else
+			//printf("\t%d", S->block[i][j]);
+#endif
+        }
+
+#ifdef FILE_IO
 		fprintf(stderr, "\n");
+#else
+		//printf("\n");
+#endif
 	}
 }
 
@@ -25,10 +39,21 @@ void show_PBlock(PBlock * S)
 {
 	int i, j;
 
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < 8; i++) 
+    {
 		for (j = 0; j < 8; j++)
+        {
+#ifdef FILE_IO
 			fprintf(stderr, "\t%d", S->block[i][j]);
+#else
+			//printf("\t%d", S->block[i][j]);
+#endif
+        }
+#ifdef FILE_IO
 		fprintf(stderr, "\n");
+#else
+		//printf("\n");
+#endif
 	}
 }
 
@@ -55,18 +80,19 @@ void bin_dump(unsigned int * fi)
 #ifdef FILE_IO
 			fprintf(stderr, "\t%1d", ! !(c & bitmask));
 #else
-			printf("\t%d", ! !(c & bitmask));
+			//printf("\t%d", ! !(c & bitmask));
 #endif
 
         }
 #ifdef FILE_IO
 		fprintf(stderr, "\n");
 #else
-		printf("\n");
+		//printf("\n");
 #endif
 	}
 }
 
+#endif
 /*-------------------------------------------*/
 /* core dump generator for forensic analysis */
 /*-------------------------------------------*/
@@ -75,8 +101,11 @@ void suicide(void)
 {
 	int *P;
 
+#ifdef FILE_IO
 	fflush(stdout);
 	fflush(stderr);
+#else
+#endif
 	P = NULL;
 	*P = 1;
 }
@@ -97,8 +126,8 @@ void aborted_stream(unsigned int * fi)
 
 	free_structures();
 #else
-	printf("%d:\tERROR:\tAbnormal end of decompression process!\n", FTELL());
-	printf("\tINFO:\tTotal skipped bytes %d, total stuffers %d\n", passed, stuffers);
+	//printf("%d:\tERROR:\tAbnormal end of decompression process!\n", FTELL());
+	//printf("\tINFO:\tTotal skipped bytes %d, total stuffers %d\n", passed, stuffers);
 #endif
 
 	if (DEBUG)
@@ -162,19 +191,43 @@ void free_structures(void)
 
 	for (i = 0; i < 4; i++)
 		if (QTvalid[i])
+#ifdef FILE_IO
 			free(QTable[i]);
+#else
+			mk_free(QTable[i]);
+#endif
 
 	if (ColorBuffer != NULL)
+#ifdef FILE_IO
 		free(ColorBuffer);
+#else
+		mk_free(ColorBuffer);
+#endif
 	if (FrameBuffer != NULL)
+#ifdef FILE_IO
 		free(FrameBuffer);
+#else
+		mk_free(FrameBuffer);
+#endif
 	if (PBuff != NULL)
+#ifdef FILE_IO
 		free(PBuff);
+#else
+		mk_free(PBuff);
+#endif
 	if (FBuff != NULL)
+#ifdef FILE_IO
 		free(FBuff);
+#else
+		mk_free(FBuff);
+#endif
 
 	for (i = 0; MCU_valid[i] != -1; i++)
+#ifdef FILE_IO
 		free(MCU_buff[i]);
+#else
+		mk_free(MCU_buff[i]);
+#endif
 }
 
 /*-------------------------------------------*/
@@ -200,7 +253,6 @@ void RGB_save(FILE * fo)
 #else
 void RGB_save(unsigned int * fo)
 #endif
-
 {
 	sunraster *FrameHeader;
 #ifdef FILE_IO
@@ -209,7 +261,7 @@ void RGB_save(unsigned int * fo)
     /*variable is not used in this case*/
 #endif
 
-	FrameHeader = (sunraster *) malloc(sizeof(sunraster));
+	FrameHeader = (sunraster *) mk_malloc(sizeof(sunraster));
 	FrameHeader->MAGIC = 0x59a66a95L;
 	FrameHeader->Width = 2 * ceil_div(x_size, 2);	/* round to 2 more */
 	FrameHeader->Heigth = y_size;

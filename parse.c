@@ -6,8 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "5kk03.h"
 #include "jpeg.h"
+#include <comik.h>
+#include <5kk03-utils.h>
 
 /*---------------------------------------------------------------------*/
 
@@ -51,7 +52,7 @@ unsigned long get_bits(unsigned int * fi, int number)
 #ifdef FILE_IO
                         fprintf(stderr, "%ld:\tERROR:\tRan out of bit stream\n", ftell(fi));
 #else
-                        printf("%d:\tERROR:\tRan out of bit stream\n", FTELL());
+                        //printf("%d:\tERROR:\tRan out of bit stream\n", FTELL());
 #endif
                         aborted_stream(fi);
                         break;
@@ -66,14 +67,14 @@ unsigned long get_bits(unsigned int * fi, int number)
 #ifdef FILE_IO
                             fprintf(stderr, "%ld:\tERROR:\tSpontaneously found restart!\n", ftell(fi));
 #else
-                            printf("%d:\tERROR:\tSpontaneously found restart!\n", FTELL());
+                            //printf("%d:\tERROR:\tSpontaneously found restart!\n", FTELL());
 #endif
 
                         }
 #ifdef FILE_IO
                         fprintf(stderr, "%ld:\tERROR:\tLost sync in bit stream\n", ftell(fi));
 #else
-                        printf("%d:\tERROR:\tLost sync in bit stream\n", FTELL());
+                        //printf("%d:\tERROR:\tLost sync in bit stream\n", FTELL());
 #endif
                         aborted_stream(fi);
                         break;
@@ -122,7 +123,7 @@ unsigned char get_one_bit(unsigned int * fi)
 #ifdef FILE_IO
                     fprintf(stderr, "%ld:\tERROR:\tRan out of bit stream\n", ftell(fi));
 #else
-                    printf("%d:\tERROR:\tRan out of bit stream\n", FTELL());
+                    //printf("%d:\tERROR:\tRan out of bit stream\n", FTELL());
 #endif
                     aborted_stream(fi);
                     break;
@@ -138,8 +139,8 @@ unsigned char get_one_bit(unsigned int * fi)
                     fprintf(stderr, "%ld:\tERROR:\tLost sync in bit stream\n", ftell(fi));
 #else
                     if (RST_MK(0xFF00 | aux))
-                        printf("%d:\tERROR:\tSpontaneously found restart!\n", FTELL());
-                    printf("%d:\tERROR:\tLost sync in bit stream\n", FTELL());
+                        /* printf("%d:\tERROR:\tSpontaneously found restart!\n", FTELL()); */
+                    /* printf("%d:\tERROR:\tLost sync in bit stream\n", FTELL()); */
 #endif
                     aborted_stream(fi);
                     break;
@@ -182,28 +183,32 @@ void skip_segment(FILE * fi)
 void skip_segment(unsigned int * fi)
 #endif
 {				/* skip a segment we don't want */
-	unsigned int size;
-	char tag[5];
-	int i;
+    unsigned int size;
+    char tag[5];
+    int i;
 
-	size = get_size(fi);
-	if (size > 5) {
-		for (i = 0; i < 4; i++)
-   #ifdef FILE_IO
-			tag[i] = fgetc(fi);
-   #else
-      tag[i] = FGETC(fi);
-   #endif
-		tag[4] = '\0';
-		if (verbose)
-			fprintf(stderr, "\tINFO:\tTag is %s\n", tag);
-		size -= 4;
-	}
- #ifdef FILE_IO
-	fseek(fi, size - 2, SEEK_CUR);
- #else
-  FSEEK(size - 2, SEEK_CUR);
- #endif
+    size = get_size(fi);
+    if (size > 5) {
+        for (i = 0; i < 4; i++)
+#ifdef FILE_IO
+            tag[i] = fgetc(fi);
+#else
+        tag[i] = FGETC(fi);
+#endif
+        tag[4] = '\0';
+        if (verbose)
+#ifdef FILE_IO
+            fprintf(stderr, "\tINFO:\tTag is %s\n", tag);
+#else
+        //printf("\tINFO:\tTag is %s\n", tag);
+#endif
+        size -= 4;
+    }
+#ifdef FILE_IO
+    fseek(fi, size - 2, SEEK_CUR);
+#else
+    FSEEK(size - 2, SEEK_CUR);
+#endif
 }
 
 /*----------------------------------------------------------------*/
@@ -242,7 +247,7 @@ unsigned int get_next_MK(unsigned int * fi)
 #ifdef FILE_IO
                     fprintf(stderr, "NOTE: passed %d bytes\n", locpassed);
 #else
-                    printf("NOTE: passed %d bytes\n", locpassed);
+                    //printf("NOTE: passed %d bytes\n", locpassed);
 #endif
                 }
 
@@ -269,60 +274,63 @@ int load_quant_tables(FILE * fi)
 int load_quant_tables(unsigned int * fi)
 #endif
 {
-	char aux;
-	unsigned int size, n, i, id, x;
+    char aux;
+    unsigned int size, n, i, id, x;
 
-	size = get_size(fi);	/* this is the tables' size */
-	n = (size - 2) / 65;
+    size = get_size(fi);	/* this is the tables' size */
+    n = (size - 2) / 65;
 
-	for (i = 0; i < n; i++) {
-   #ifdef FILE_IO
-			aux = fgetc(fi);
-   #else
-      aux = FGETC(fi);
-   #endif		
-		if (first_quad(aux) > 0) 
+    for (i = 0; i < n; i++) 
+    {
+#ifdef FILE_IO
+        aux = fgetc(fi);
+#else
+        aux = FGETC(fi);
+#endif		
+        if (first_quad(aux) > 0) 
         {
 #ifdef FILE_IO
-			fprintf(stderr, "\tERROR:\tBad QTable precision!\n");
+            fprintf(stderr, "\tERROR:\tBad QTable precision!\n");
 #else
-			printf("\tERROR:\tBad QTable precision!\n");
+            //printf("\tERROR:\tBad QTable precision!\n");
 #endif
-			return -1;
-		}
-		id = second_quad(aux);
-		if (verbose)
+            return -1;
+        }
+        id = second_quad(aux);
+        if (verbose)
         {
 #ifdef FILE_IO
-			fprintf(stderr, "\tINFO:\tLoading table %d\n", id);
+            fprintf(stderr, "\tINFO:\tLoading table %d\n", id);
 #else
-			printf("\tINFO:\tLoading table %d\n", id);
+            //printf("\tINFO:\tLoading table %d\n", id);
 #endif
         }
-		QTable[id] = (PBlock *) malloc(sizeof(PBlock));
-		if (QTable[id] == NULL) 
+        QTable[id] = (PBlock *) mk_malloc(sizeof(PBlock));
+        if (QTable[id] == NULL) 
         {
 #ifdef FILE_IO
-			fprintf(stderr, "\tERROR:\tCould not allocate table storage!\n");
+            fprintf(stderr, "\tERROR:\tCould not allocate table storage!\n");
 #else
-			printf("\tERROR:\tCould not allocate table storage!\n");
+            //printf("\tERROR:\tCould not allocate table storage!\n");
 #endif
-			exit(1);
-		}
-		QTvalid[id] = 1;
-		for (x = 0; x < 64; x++)
-    #ifdef FILE_IO
-			QTable[id]->linear[x] = fgetc(fi);
-    #else
-      QTable[id]->linear[x] = FGETC(fi);
-    #endif
-		/*
-		   -- This is useful to print out the table content --
-		   for (x = 0; x < 64; x++)
-		   fprintf(stderr, "%d\n", QTable[id]->linear[x]);
-		 */
-	}
-	return 0;
+            exit(1);
+        }
+        QTvalid[id] = 1;
+        for (x = 0; x < 64; x++)
+        {
+#ifdef FILE_IO
+            QTable[id]->linear[x] = fgetc(fi);
+#else
+            QTable[id]->linear[x] = FGETC(fi);
+#endif
+        }
+        /*
+           -- This is useful to print out the table content --
+           for (x = 0; x < 64; x++)
+           fprintf(stderr, "%d\n", QTable[id]->linear[x]);
+           */
+    }
+    return 0;
 }
 
 /*----------------------------------------------------------*/
@@ -338,24 +346,36 @@ int init_MCU(void)
 
 	k = 0;
 
-	for (i = 0; i < n_comp; i++) {
+	for (i = 0; i < n_comp; i++) 
+   {
 		if (comp[i].HS > hmax)
 			hmax = comp[i].HS;
 		if (comp[i].VS > vmax)
 			vmax = comp[i].VS;
+      
 		n = comp[i].HS * comp[i].VS;
 
 		comp[i].IDX = k;
 		for (j = 0; j < n; j++) {
 			MCU_valid[k] = i;
-			MCU_buff[k] = (PBlock *) malloc(sizeof(PBlock));
-			if (MCU_buff[k] == NULL) {
+			MCU_buff[k] = (PBlock *) mk_malloc(sizeof(PBlock));
+			if (MCU_buff[k] == NULL) 
+            {
+#ifdef FILE_IO
 				fprintf(stderr, "\tERROR:\tCould not allocate MCU buffers!\n");
 				exit(1);
+#else
+				//printf("\tERROR:\tCould not allocate MCU buffers!\n");
+#endif
 			}
 			k++;
-			if (k == 10) {
+			if (k == 10) 
+            {
+#ifdef FILE_IO
 				fprintf(stderr, "\tERROR:\tMax subsampling exceeded!\n");
+#else
+				//printf("\tERROR:\tMax subsampling exceeded!\n");
+#endif
 				return -1;
 			}
 		}
@@ -386,54 +406,58 @@ int process_MCU(FILE * fi)
 int process_MCU(unsigned int * fi)
 #endif
 {
-	int i;
-	long offset;
-	int goodrows, goodcolumns;
+    int i;
+    long offset;
+    int goodrows, goodcolumns;
 
-	if (MCU_column == mx_size) {
-		MCU_column = 0;
-		MCU_row++;
-		if (MCU_row == my_size) {
-			in_frame = 0;
-			return 0;
-		}
-		if (verbose)
-#ifdef FILE_IO
-			fprintf(stderr, "%ld:\tINFO:\tProcessing stripe %d/%d\n", ftell(fi), MCU_row + 1, my_size);
-#else
-			printf("%d:\tINFO:\tProcessing stripe %d/%d\n", FTELL(), MCU_row + 1, my_size);
-#endif
-	}
-
-	for (curcomp = 0; MCU_valid[curcomp] != -1; curcomp++) 
+    if (MCU_column == mx_size) 
     {
-		unpack_block(fi, FBuff, MCU_valid[curcomp]);	/* pass index to HT,QT,pred */
-		IDCT(FBuff, MCU_buff[curcomp]);
-	}
+        MCU_column = 0;
+        MCU_row++;
+        if (MCU_row == my_size) 
+         {
+            in_frame = 0;
+            return 0;
+        }
+        if (verbose)
+        {
+#ifdef FILE_IO
+            fprintf(stderr, "%ld:\tINFO:\tProcessing stripe %d/%d\n", ftell(fi), MCU_row + 1, my_size);
+#else
+            //printf("%d:\tINFO:\tProcessing stripe %d/%d\n", FTELL(), MCU_row + 1, my_size);
+#endif
+        }
+    }
 
-	/* YCrCb to RGB color space transform here */
-	if (n_comp > 1)
-		color_conversion();
-	else
-		memmove(ColorBuffer, MCU_buff[0], 64);
+    for (curcomp = 0; MCU_valid[curcomp] != -1; curcomp++) 
+    {
+        unpack_block(fi, FBuff, MCU_valid[curcomp]);	/* pass index to HT,QT,pred */
+        IDCT(FBuff, MCU_buff[curcomp]);
+    }
 
-	/* cut last row/column as needed */
-	if ((y_size != ry_size) && (MCU_row == (my_size - 1)))
-		goodrows = y_size - ry_size;
-	else
-		goodrows = MCU_sy;
+    /* YCrCb to RGB color space transform here */
+    if (n_comp > 1)
+        color_conversion();
+    else
+        memmove(ColorBuffer, MCU_buff[0], 64);
 
-	if ((x_size != rx_size) && (MCU_column == (mx_size - 1)))
-		goodcolumns = x_size - rx_size;
-	else
-		goodcolumns = MCU_sx;
+    /* cut last row/column as needed */
+    if ((y_size != ry_size) && (MCU_row == (my_size - 1)))
+        goodrows = y_size - ry_size;
+    else
+        goodrows = MCU_sy;
 
-	offset = n_comp * (MCU_row * MCU_sy * x_size + MCU_column * MCU_sx);
+    if ((x_size != rx_size) && (MCU_column == (mx_size - 1)))
+        goodcolumns = x_size - rx_size;
+    else
+        goodcolumns = MCU_sx;
 
-	for (i = 0; i < goodrows; i++)
-		memmove(FrameBuffer + offset + n_comp * i * x_size, ColorBuffer + n_comp * i * MCU_sx,
-			n_comp * goodcolumns);
+    offset = n_comp * (MCU_row * MCU_sy * x_size + MCU_column * MCU_sx);
+             3        
 
-	MCU_column++;
-	return 1;
+    for (i = 0; i < goodrows; i++)
+        memmove(FrameBuffer + offset + n_comp * i * x_size, ColorBuffer + n_comp * i * MCU_sx, n_comp * goodcolumns); 
+
+    MCU_column++;
+    return 1;
 }

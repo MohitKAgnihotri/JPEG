@@ -5,7 +5,6 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "5kk03.h"
 #include "jpeg.h"
 
 /*--------------------------------------*/
@@ -42,80 +41,107 @@ int load_huff_tables(FILE * fi)
 int load_huff_tables(unsigned int * fi)
 #endif
 {
-	char aux;
-	int size, hclass, id, max;
-	int LeavesN, LeavesT, i;
-	int AuxCode;
+    char aux;
+    int size, hclass, id, max;
+    int LeavesN, LeavesT, i;
+    int AuxCode;
 
-	size = get_size(fi);	/* this is the tables' size */
+    size = get_size(fi);	/* this is the tables' size */
 
-	size -= 2;
+    size -= 2;
 
-	while (size > 0) {
+    while (size > 0) 
+    {
 
 #ifdef FILE_IO
-		aux = fgetc(fi);
+        aux = fgetc(fi);
 #else
-    aux = FGETC(fi);
+        aux = FGETC(fi);
 #endif
-		hclass = first_quad(aux);	/* AC or DC */
-		id = second_quad(aux);	/* table no */
-		if (id > 1) {
-			fprintf(stderr, "\tERROR:\tBad HTable identity %d!\n", id);
-			return -1;
-		}
-		id = HUFF_ID(hclass, id);
-		if (verbose)
-			fprintf(stderr, "\tINFO:\tLoading Table %d\n", id);
-		size--;
+        hclass = first_quad(aux);	/* AC or DC */
+        id = second_quad(aux);	/* table no */
+        if (id > 1) 
+        {
+#ifdef FILE_IO			
+            fprintf(stderr, "\tERROR:\tBad HTable identity %d!\n", id);
+#else
+            //printf("\tERROR:\tBad HTable identity %d!\n", id);
+#endif
+            return -1;
+        }
+        id = HUFF_ID(hclass, id);
+        if (verbose)
+        {
+#ifdef FILE_IO
+            fprintf(stderr, "\tINFO:\tLoading Table %d\n", id);
+#else
+            //printf( "\tINFO:\tLoading Table %d\n", id);
+#endif
+        }
+        size--;
 
-		LeavesT = 0;
-		AuxCode = 0;
+        LeavesT = 0;
+        AuxCode = 0;
 
-		for (i = 0; i < 16; i++) {
-   #ifdef FILE_IO
-			LeavesN = fgetc(fi);
-   #else
-      LeavesN = FGETC(fi);
-   #endif
-			ValPtr[id][i] = LeavesT;
-			MinCode[id][i] = AuxCode * 2;
-			AuxCode = MinCode[id][i] + LeavesN;
+        for (i = 0; i < 16; i++) 
+        {
+#ifdef FILE_IO
+            LeavesN = fgetc(fi);
+#else
+            LeavesN = FGETC(fi);
+#endif
+            ValPtr[id][i] = LeavesT;
+            MinCode[id][i] = AuxCode * 2;
+            AuxCode = MinCode[id][i] + LeavesN;
 
-			MaxCode[id][i] = (LeavesN) ? (AuxCode - 1) : (-1);
-			LeavesT += LeavesN;
-		}
-		size -= 16;
+            MaxCode[id][i] = (LeavesN) ? (AuxCode - 1) : (-1);
+            LeavesT += LeavesN;
+        }
+        size -= 16;
 
-		if (LeavesT > MAX_SIZE(hclass)) {
-			max = MAX_SIZE(hclass);
-			fprintf(stderr, "\tWARNING:\tTruncating Table by %d symbols\n", LeavesT - max);
-		} else
-			max = LeavesT;
+        if (LeavesT > MAX_SIZE(hclass)) 
+        {
+            max = MAX_SIZE(hclass);
+#ifdef FILE_IO	
+            fprintf(stderr, "\tWARNING:\tTruncating Table by %d symbols\n", LeavesT - max);
+#else
+            //printf("\tWARNING:\tTruncating Table by %d symbols\n", LeavesT - max);
+#endif
+        } 
+        else
+        {
+            max = LeavesT;
+        }
 
-		for (i = 0; i < max; i++)
-   #ifdef FILE_IO
-			HTable[id][i] = fgetc(fi);	/* load in raw order */
-   #else
-      HTable[id][i] = FGETC(fi);	/* load in raw order */
-   #endif
-		for (i = max; i < LeavesT; i++)
-   #ifdef FILE_IO
-			fgetc(fi);	/* skip if we don't load */
-   #else
-      FGETC(fi);	/* skip if we don't load */
-   #endif
-		size -= LeavesT;
+        for (i = 0; i < max; i++)
+        {
+#ifdef FILE_IO
+            HTable[id][i] = fgetc(fi);	/* load in raw order */
+#else
+            HTable[id][i] = FGETC(fi);	/* load in raw order */
+#endif
+        }
+        for (i = max; i < LeavesT; i++)
+        {
+#ifdef FILE_IO
+            fgetc(fi);	/* skip if we don't load */
+#else
+            FGETC(fi);	/* skip if we don't load */
+#endif
+        }
+        size -= LeavesT;
 
-		if (verbose)
-   #ifdef FILE_IO
-			fprintf(stderr, "\tINFO:\tUsing %d words of table memory\n", LeavesT);
-   #else
-      printf("\tINFO:\tUsing %d words of table memory\n", LeavesT);
-   #endif
+        if (verbose)
+        {
+#ifdef FILE_IO
+            fprintf(stderr, "\tINFO:\tUsing %d words of table memory\n", LeavesT);
+#else
+            //printf("\tINFO:\tUsing %d words of table memory\n", LeavesT);
+#endif
+        }
 
-	}			/* loop on tables */
-	return 0;
+    }			/* loop on tables */
+    return 0;
 }
 
 /*-----------------------------------*/
@@ -147,7 +173,7 @@ unsigned char get_symbol(unsigned int * fi, int select)
 #ifdef FILE_IO
 	fprintf(stderr, "%ld:\tWARNING:\tOverflowing symbol table !\n", ftell(fi));
 #else
-	printf("%d:\tWARNING:\tOverflowing symbol table !\n", FTELL());
+	//printf("%d:\tWARNING:\tOverflowing symbol table !\n", FTELL());
 #endif
 	return 0;
 }

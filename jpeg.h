@@ -135,7 +135,9 @@ extern int verbose;
 
 /* Counter used by FGET and FSEEK in 5kk03.c */
 extern int vld_count;
+#if 0
 extern unsigned int input_buffer[JPGBUFFER_SIZE / sizeof(int)];
+#endif
 
 /*-----------------------------------------*/
 /* prototypes from utils.c		   */

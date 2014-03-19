@@ -1,13 +1,11 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include "5kk03.h" 
+#include <global_memmap.h>
+#include <comik.h>
+#include <5kk03-utils.h>
+
 
 /* real declaration of global variables here */
 /* see jpeg.h for more info			*/
-
 #include "jpeg.h"
-#include "surfer.jpg.h"
 
 /* descriptors for 3 components */
 cd_t comp[3];
@@ -60,13 +58,19 @@ int verbose = 0;
 /* Extra global variables for 5kk03 */
 
 int vld_count = 0;		/* Counter used by FGET and FSEEK in 5kk03.c */
+
+/* Disabling Global Variable to fix the below error
+ * cannot move location counter backwards (from 0008aca8 to 00080000)
+ * */
+#if 0
 unsigned int input_buffer[JPGBUFFER_SIZE / sizeof(int)];
+#endif
 
 /* End extra global variables for 5kk03 */
 
 int JpegToBmp(char *file1, char *file2);
 
-int main()
+int Jmain()
 {
 
 	JpegToBmp("./surfer.jpg", "surfer.bmp");
@@ -92,7 +96,11 @@ int JpegToBmp(char *file1, char *file2)
 		return 0;
 	}
 #else 
-    fi = &surfer_jpg[0];
+    /*Read image from the file uploaded to the DDR: Refer the link for pointer math!!!
+     * http://www.es.ele.tue.nl/education/5kk03/wiki/index.php?title=Uploading_files_to_the_DDR*/
+    fi = (unsigned int  *)(shared_pt_REMOTEADDR+1024*1024*4);
+    for(i=0;i<32*24;i++)
+        mk_mon_debug_info(*fi+i*4);
 #endif
 
 	/* First find the SOI marker: */
@@ -105,7 +113,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 		fprintf(stderr, "%ld:\tINFO:\tFound the SOI marker!\n", ftell(fi));
 #else
-		printf("%d:\tINFO:\tFound the SOI marker!\n", FTELL());
+		//printf("%d:\tINFO:\tFound the SOI marker!\n", FTELL());
 #endif
 
 	in_frame = 0;
@@ -124,7 +132,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "%ld:\tINFO:\tFound the SOF marker!\n", ftell(fi));
 #else
-				printf("%d:\tINFO:\tFound the SOF marker!\n", FTELL());
+				//printf("%d:\tINFO:\tFound the SOF marker!\n", FTELL());
 #endif
             }
 			in_frame = 1;
@@ -143,7 +151,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "\tINFO:\tImage size is %d by %d\n", x_size, y_size);
 #else
-				printf("\tINFO:\tImage size is %d by %d\n", x_size, y_size);
+				//printf("\tINFO:\tImage size is %d by %d\n", x_size, y_size);
 #endif
             }
 
@@ -157,7 +165,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
                 fprintf(stderr, "\tINFO:\t");
 #else
-                printf("\tINFO:\t");
+                //printf("\tINFO:\t");
 #endif
                 switch (n_comp) 
                 {
@@ -173,13 +181,13 @@ int JpegToBmp(char *file1, char *file2)
                         break;
 #else
                     case 1:
-                        printf("Monochrome");
+                        //printf("Monochrome");
                         break;
                     case 3:
-                        printf("Color");
+                        //printf("Color");
                         break;
                     default:
-                        printf("Not a");
+                        //printf("Not a");
                         break;
 
 #endif
@@ -187,7 +195,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
                 fprintf(stderr, " JPEG image!\n");
 #else
-                printf(" JPEG image!\n");
+                //printf(" JPEG image!\n");
 #endif
             }
 
@@ -218,9 +226,9 @@ int JpegToBmp(char *file1, char *file2)
                         comp[0].HS * comp[0].VS, comp[1].HS * comp[1].VS, comp[2].HS * comp[2].VS,
                         comp[1].HS);
 #else
-                printf("\tINFO:\tColor format is %d:%d:%d, H=%d\n",
+                /* printf("\tINFO:\tColor format is %d:%d:%d, H=%d\n",
                         comp[0].HS * comp[0].VS, comp[1].HS * comp[1].VS, comp[2].HS * comp[2].VS,
-                        comp[1].HS);
+                        comp[1].HS); */
 #endif
             }
 
@@ -228,19 +236,21 @@ int JpegToBmp(char *file1, char *file2)
 				aborted_stream(fi);
 
 			/* dimension scan buffer for YUV->RGB conversion */
-			FrameBuffer = (unsigned char *)malloc((size_t) x_size * y_size * n_comp);
-			ColorBuffer = (unsigned char *)malloc((size_t) MCU_sx * MCU_sy * n_comp);
-			FBuff = (FBlock *) malloc(sizeof(FBlock));
-			PBuff = (PBlock *) malloc(sizeof(PBlock));
+			FrameBuffer = (unsigned char *)mk_malloc((size_t) x_size * y_size * n_comp);
+			ColorBuffer = (unsigned char *)mk_malloc((size_t) MCU_sx * MCU_sy * n_comp);
+			FBuff = (FBlock *) mk_malloc(sizeof(FBlock));
+			PBuff = (PBlock *) mk_malloc(sizeof(PBlock));
 
 			if ((FrameBuffer == NULL) || (ColorBuffer == NULL) || (FBuff == NULL) || (PBuff == NULL)) 
             {
 #ifdef FILE_IO
 				fprintf(stderr, "\tERROR:\tCould not allocate pixel storage!\n");
-#else
-				printf("\tERROR:\tCould not allocate pixel storage!\n");
-#endif
 				exit(1);
+#else
+				//printf("\tERROR:\tCould not allocate pixel storage!\n");
+				suicide();
+#endif
+
 			}
 			break;
 
@@ -249,7 +259,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "%ld:\tINFO:\tDefining Huffman Tables\n", ftell(fi));
 #else
-				printf("%d:\tINFO:\tDefining Huffman Tables\n", FTELL());
+				//printf("%d:\tINFO:\tDefining Huffman Tables\n", FTELL());
 #endif
 			if (load_huff_tables(fi) == -1)
 				aborted_stream(fi);
@@ -260,7 +270,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "%ld:\tINFO:\tDefining Quantization Tables\n", ftell(fi));
 #else
-				printf("%d:\tINFO:\tDefining Quantization Tables\n", FTELL());
+				//printf("%d:\tINFO:\tDefining Quantization Tables\n", FTELL());
 #endif
 			if (load_quant_tables(fi) == -1)
 				aborted_stream(fi);
@@ -273,7 +283,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "%ld:\tINFO:\tDefining Restart Interval %d\n", ftell(fi),restart_interval);
 #else
-				printf("%d:\tINFO:\tDefining Restart Interval %d\n", FTELL(), restart_interval);
+				//printf("%d:\tINFO:\tDefining Restart Interval %d\n", FTELL(), restart_interval);
 #endif
 			break;
 
@@ -282,7 +292,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "%ld:\tINFO:\tFound the SOS marker!\n", ftell(fi));
 #else
-				printf("%d:\tINFO:\tFound the SOS marker!\n", FTELL(fi));
+				//printf("%d:\tINFO:\tFound the SOS marker!\n", FTELL(fi));
 #endif
 			get_size(fi);	/* don't care */
 #ifdef FILE_IO
@@ -295,7 +305,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "\tERROR:\tBad component interleaving!\n");
 #else
-				printf("\tERROR:\tBad component interleaving!\n");
+				//printf("\tERROR:\tBad component interleaving!\n");
 #endif
 				aborted_stream(fi);
 			}
@@ -312,7 +322,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 					fprintf(stderr, "\tERROR:\tBad Component Order!\n");
 #else
-					printf("\tERROR:\tBad Component Order!\n");
+					//printf("\tERROR:\tBad Component Order!\n");
 #endif
 					aborted_stream(fi);
 				}
@@ -355,13 +365,13 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
                         fprintf(stderr, "%ld:\tERROR:\tLost Sync after interval!\n", ftell(fi));
 #else
-                        printf("%d:\tERROR:\tLost Sync after interval!\n", FTELL());
+                        //printf("%d:\tERROR:\tLost Sync after interval!\n", FTELL());
 #endif
                         aborted_stream(fi);
                     } 
                     else if (verbose)
                     {
-                        printf("%d:\tINFO:\tFound Restart Marker\n", FTELL());
+                        //printf("%d:\tINFO:\tFound Restart Marker\n", FTELL());
                     }
 
                     reset_prediction();
@@ -382,7 +392,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "%ld:\tINFO:\tFound the EOI marker!\n", ftell(fi));
 #else
-				printf("%d:\tINFO:\tFound the EOI marker!\n", FTELL());
+				//printf("%d:\tINFO:\tFound the EOI marker!\n", FTELL());
 #endif
 			if (in_frame)
 				aborted_stream(fi);
@@ -391,7 +401,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "\tINFO:\tTotal skipped bytes %d, total stuffers %d\n", passed, stuffers);
 #else
-				printf("\tINFO:\tTotal skipped bytes %d, total stuffers %d\n", passed, stuffers);
+				//printf("\tINFO:\tTotal skipped bytes %d, total stuffers %d\n", passed, stuffers);
 #endif
 #ifdef FILE_IO
 			fclose(fi);
@@ -407,6 +417,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 			free_structures();
 #else
+			free_structures();
             /*No Need to do anything as structures are static*/
 #endif
 			return 0;
@@ -418,19 +429,20 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 				fprintf(stderr, "%ld:\tINFO:\tSkipping comments\n", ftell(fi));
 #else
-				printf("%d:\tINFO:\tSkipping comments\n", FTELL());
+				//printf("%d:\tINFO:\tSkipping comments\n", FTELL());
 #endif
             }
 			skip_segment(fi);
 			break;
 
-		case EOF:
+		/* case EOF:  */
+		case 0XD9:
 			if (verbose)
             {
 #ifdef FILE_IO
 				fprintf(stderr, "%ld:\tERROR:\tRan out of input data!\n", ftell(fi));
 #else
-				printf("%d:\tERROR:\tRan out of input data!\n", FTELL());
+				//printf("%d:\tERROR:\tRan out of input data!\n", FTELL());
 #endif
             }
 
@@ -444,7 +456,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 					fprintf(stderr, "%ld:\tINFO:\tSkipping application data\n", ftell(fi));
 #else
-					printf("%d:\tINFO:\tSkipping application data\n", FTELL());
+					//printf("%d:\tINFO:\tSkipping application data\n", FTELL());
 #endif
                 }
 				skip_segment(fi);
@@ -459,7 +471,7 @@ int JpegToBmp(char *file1, char *file2)
 #ifdef FILE_IO
 			fprintf(stderr, "%ld:\tWARNING:\tLost Sync outside scan, %d!\n", ftell(fi), mark);
 #else
-			printf("%d:\tWARNING:\tLost Sync outside scan, %d!\n", FTELL(), mark);
+			/* printf("%d:\tWARNING:\tLost Sync outside scan, %d!\n", FTELL(), mark); */
 #endif
 			aborted_stream(fi);
 			break;
@@ -469,6 +481,7 @@ int JpegToBmp(char *file1, char *file2)
 	return 0;
 }
 
+#ifdef FILE_IO
 void write_bmp(const char *const file2)
 {
 	FILE *fpBMP;
@@ -521,3 +534,5 @@ void write_bmp(const char *const file2)
 
 	fclose(fpBMP);
 }
+#else
+#endif

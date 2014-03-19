@@ -3,12 +3,16 @@
 #include "5kk03.h"
 #include "jpeg.h"
 
+#if 0
 extern unsigned int input_buffer[JPGBUFFER_SIZE / sizeof(int)];
+#endif
+
 extern int vld_count;
 
-unsigned int FGETC()
+unsigned int FGETC(unsigned int * fi)
 {
-	unsigned int c = ((input_buffer[vld_count / 4] << (8 * (vld_count % 4))) >> 24) & 0x00ff;
+	/* unsigned int c = ((input_buffer[vld_count / 4] << (8 * (vld_count % 4))) >> 24) & 0x00ff; */
+	unsigned int c = ((fi[vld_count / 4] << (8 * (vld_count % 4))) >> 24) & 0x00ff;
 	vld_count++;
 	return c;
 }
